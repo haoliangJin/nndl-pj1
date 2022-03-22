@@ -7,4 +7,4 @@ python main.py
 python test.py
 ```
 # Model saving
-`model.pkl`
+`model.pkl` saves the network and parameter
