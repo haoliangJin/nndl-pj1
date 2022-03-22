@@ -1,8 +1,9 @@
-# training 
+# Training 
 ```linux
 python main.py
 ```
-# testing
+# Testing
+```linux
 python test.py
-
+```
 
