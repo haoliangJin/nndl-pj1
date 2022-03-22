@@ -1,2 +1,6 @@
-# 神经网络与深度学习 pj1
-## happy
+# training 
+python main.py
+# testing
+python test.py
+
+
