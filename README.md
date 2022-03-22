@@ -7,7 +7,7 @@ python main.py
 ## Model saving
 Pickle file `model.pkl` saves the network and parameter
 ## Testing
-Add 'model.pkl' first
+Add `model.pkl` first
 ```
 python test.py
 ```
