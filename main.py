@@ -64,50 +64,25 @@ class net():
             # batch gradient
             dout=dy*self.d_relu(output)
 
-            dw3=np.dot(h2.T,dout)
+            dw3=np.dot(h2.T,dout) + self.decay_rate * self.params['w3']  # l2_regularization
             db3=np.sum(dout,axis=0)
             dh2=np.dot(dout,self.params['w3'].T)*self.d_relu(h2)
 
-            dw2=np.dot(h1.T,dh2)
+            dw2=np.dot(h1.T,dh2) + self.decay_rate * self.params['w2']  # l2_regularization
             db2=np.sum(dh2,axis=0)
             dh1=np.dot(dh2,self.params['w2'].T)*self.d_relu(h1)
 
-            dw1=np.dot(input.T,dh1)
+            dw1=np.dot(input.T,dh1) + self.decay_rate * self.params['w1']  # l2_regularization
             db1=np.sum(dh1,axis=0)
 
-            self.params['w3'] -= dw3 * self.lr + self.decay_rate * self.params['w3']  # l2_regularization
+            self.params['w3'] -= dw3 * self.lr
             self.params['b3'] -= db3 * self.lr
-            self.params['w2'] -= dw2 * self.lr + self.decay_rate * self.params['w2']  # l2_regularization
+            self.params['w2'] -= dw2 * self.lr
             self.params['b2'] -= db2 * self.lr
-            self.params['w1'] -= dw1 * self.lr + self.decay_rate * self.params['w1']  # l2_regularization
+            self.params['w1'] -= dw1 * self.lr
             self.params['b1'] -= db1 * self.lr
 
-            #
-            # # stochastic gradient
-            # for index in tqdm(range(n)):
-            #     output_=np.expand_dims(output[index],axis=0)
-            #     dy_=np.expand_dims(dy[index],axis=0)
-            #     h1_=np.expand_dims(h1[index],axis=0)
-            #     input_=np.expand_dims(input[index],axis=0)
-            #
-            #     dout=dy_*self.d_relu(output_)
-            #     #print(dout.shape,dy.shape)
-            #
-            #     dw2=np.dot(h1_.T,dout)
-            #     db2=np.sum(dout,axis=0)
-            #     dh1=np.dot(dout,self.params['w2'].T)*self.d_relu(h1_)
-            #
-            #     dw1=np.dot(input_.T,dh1)
-            #     db1=np.sum(dh1,axis=0)
-            #
-            #     # backward propagation
-            #     self.params['w2']-=dw2*self.lr+self.decay_rate*self.params['w2']  # l2_regularization
-            #     self.params['b2']-=db2*self.lr
-            #     self.params['w1']-=dw1*self.lr+self.decay_rate*self.params['w1']  # l2_regularization
-            #     self.params['b1']-=db1*self.lr
-
             # lr decay
-            #self.lr=self.lr0/(1+0.1*(epoch+1))
             self.lr*=self.lr_decay
 
             # test_acc & test_loss
@@ -117,7 +92,6 @@ class net():
             self.test_acc.append(test_acc)
             self.test_loss.append(test_loss)
 
-            # loss plot & acc plot
         print('time_cost %.4f' % (time.time()-start))
         return self.loss,self.test_loss,self.test_acc
 
@@ -153,9 +127,9 @@ class net():
 if __name__ == '__main__':
     # hyper-parameter setting
     parser=argparse.ArgumentParser()
-    #parser.add_argument('--batch_size',type=int,default=32)
+    # parser.add_argument('--batch_size',type=int,default=32)
     parser.add_argument('--lr',type=float,default=0.25)
-    parser.add_argument('--decay_rate',type=float,default=1e-5)
+    parser.add_argument('--decay_rate',type=float,default=4e-5)
     parser.add_argument('--lr_decay',type=float,default=0.99)
     parser.add_argument('--hidden_size',type=int,default=256)
     parser.add_argument('--hidden_size2',type=int,default=128)
