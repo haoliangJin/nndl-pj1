@@ -6,4 +6,7 @@ python main.py
 ```linux
 python test.py
 ```
-
+# Model saving
+```
+model.pkl
+```
