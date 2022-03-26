@@ -3,16 +3,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mnist_loader import decode_idx1_ubyte,decode_idx3_ubyte
 from utils import relu,d_relu,cross_entropy
+from sklearn.model_selection import train_test_split as split
 import pickle
 import time
 
 
 class net():
-    def __init__(self,lr,input_size,hidden_size,hidden_size2,out_size,decay_rate,epochs,act,d_act,loss_func,scale=1,lr_deacy=0.97):
+    def __init__(self,lr,input_size,hidden_size,out_size,decay_rate,epochs,act,d_act,loss_func,scale=1,lr_deacy=0.97):
         self.lr=lr
         self.input_size=input_size
         self.hidden_size=hidden_size
-        self.hidden_size2=hidden_size2
         self.out_size=out_size
         self.decay_rate=decay_rate
         self.epochs=epochs
@@ -33,11 +33,9 @@ class net():
 
     def init_weight(self):
         self.params['w1']=np.random.randn(self.input_size,self.hidden_size)*self.scale
-        self.params['w2']=np.random.randn(self.hidden_size,self.hidden_size2)*self.scale
-        self.params['w3']=np.random.randn(self.hidden_size2,self.out_size)*self.scale
+        self.params['w2']=np.random.randn(self.hidden_size,self.out_size)*self.scale
         self.params['b1']=np.zeros(self.hidden_size)
-        self.params['b2']=np.zeros(self.hidden_size2)
-        self.params['b3']=np.zeros(self.out_size)
+        self.params['b2']=np.zeros(self.out_size)
         self.init_flag=True
 
     def train(self,input,y,test_x,test_y):
@@ -48,15 +46,13 @@ class net():
             h1=np.dot(input,self.params['w1'])+self.params['b1']
             h1=self.relu(h1)
             h2=np.dot(h1,self.params['w2'])+self.params['b2']
-            h2=self.relu(h2)
-            output=np.dot(h2,self.params['w3'])+self.params['b3']
-            output=self.relu(output)
+            output=self.relu(h2)
 
             # loss
             loss,dy=self.loss_func(output,y)
             loss/=n
             dy/=n
-            regularization=np.sum(np.square(self.params['w1']))+np.sum(np.square(self.params['w2']))+np.sum(np.square(self.params['w3']))
+            regularization = np.sum(np.square(self.params['w1'])) + np.sum(np.square(self.params['w2']))
             loss+=regularization*self.decay_rate*0.5
             self.loss.append(loss)
             print('epoch %d, train_loss %.4f' % (epoch+1,loss))
@@ -64,19 +60,13 @@ class net():
             # batch gradient
             dout=dy*self.d_relu(output)
 
-            dw3=np.dot(h2.T,dout) + self.decay_rate * self.params['w3']  # l2_regularization
-            db3=np.sum(dout,axis=0)
-            dh2=np.dot(dout,self.params['w3'].T)*self.d_relu(h2)
-
-            dw2=np.dot(h1.T,dh2) + self.decay_rate * self.params['w2']  # l2_regularization
-            db2=np.sum(dh2,axis=0)
-            dh1=np.dot(dh2,self.params['w2'].T)*self.d_relu(h1)
+            dw2=np.dot(h1.T,dout) + self.decay_rate * self.params['w2']  # l2_regularization
+            db2=np.sum(dout,axis=0)
+            dh1=np.dot(dout,self.params['w2'].T)*self.d_relu(h1)
 
             dw1=np.dot(input.T,dh1) + self.decay_rate * self.params['w1']  # l2_regularization
             db1=np.sum(dh1,axis=0)
 
-            self.params['w3'] -= dw3 * self.lr
-            self.params['b3'] -= db3 * self.lr
             self.params['w2'] -= dw2 * self.lr
             self.params['b2'] -= db2 * self.lr
             self.params['w1'] -= dw1 * self.lr
@@ -101,9 +91,9 @@ class net():
         h1 = np.dot(input, self.params['w1']) + self.params['b1']
         h1 = self.relu(h1)
         h2 = np.dot(h1, self.params['w2']) + self.params['b2']
-        h2 = self.relu(h2)
-        output = np.dot(h2, self.params['w3']) + self.params['b3']
-        output = self.relu(output)
+        output = self.relu(h2)
+        #output = np.dot(h2, self.params['w3']) + self.params['b3']
+        #output = self.relu(output)
 
         # loss
         n=output.shape[0]
@@ -123,16 +113,17 @@ class net():
     def get_params(self):
         return self.params
 
+    def get_loss(self):
+        return self.loss,self.test_loss,self.test_acc
+
 
 if __name__ == '__main__':
     # hyper-parameter setting
     parser=argparse.ArgumentParser()
-    # parser.add_argument('--batch_size',type=int,default=32)
-    parser.add_argument('--lr',type=float,default=0.25)
+    parser.add_argument('--lr',type=float,default=0.35)
     parser.add_argument('--decay_rate',type=float,default=4e-5)
     parser.add_argument('--lr_decay',type=float,default=0.99)
     parser.add_argument('--hidden_size',type=int,default=256)
-    parser.add_argument('--hidden_size2',type=int,default=128)
     parser.add_argument('--output_class',type=int,default=10)
     parser.add_argument('--epochs',type=int,default=200)
     parser.add_argument('--scale',type=float,default=0.1)
@@ -160,39 +151,39 @@ if __name__ == '__main__':
 
     # training
     np.random.seed(args.seed)  # random seed control
+    train_x,valid_x,train_y,valid_y=split(train_images,train_labels,test_size=0.3,random_state=args.seed)  # train_set and valid_set
     input_size=train_images.shape[1]
-    model=net(args.lr,input_size,args.hidden_size,args.hidden_size2,args.output_class,args.decay_rate,args.epochs,relu,d_relu,cross_entropy,args.scale,args.lr_decay)
-    loss,test_loss,test_acc=model.train(train_images,train_labels,test_images,test_labels)
+    # parameters searching
+    best_model=None
+    best_loss=float('inf')
+    for args.lr in [0.35,0.3,0.25]:
+        for args.hidden_size in [256,128]:
+            for args.decay_rate in [4e-5,1e-5]:
+                model=net(args.lr,input_size,args.hidden_size,args.output_class,args.decay_rate,args.epochs,relu,d_relu,cross_entropy,args.scale,args.lr_decay)
+                _,valid_loss,_=model.train(train_x,train_y,valid_x,valid_y)
+                if valid_loss[-1]<best_loss:
+                    print('best found')
+                    best_loss=valid_loss[-1]
+                    best_model=model
 
     # result plotting
+    loss,valid_loss,valid_acc=best_model.get_loss()
     x=np.arange(1,args.epochs+1)
     plt.plot(x,loss,label='train_loss')
-    plt.plot(x,test_loss,label='test_loss')
+    plt.plot(x,valid_loss,label='valid_loss')
     plt.legend()
     plt.xlabel('epochs')
     plt.ylabel('loss')
     plt.savefig('loss.png')
 
     plt.close('all')
-    plt.plot(x,test_acc,label='test_acc')
+    plt.plot(x,valid_acc,label='valid_acc')
     plt.xlabel('epochs')
     plt.ylabel('acc')
     plt.savefig('test_acc.png')
 
     # model saving
-    params=model.get_params()
-    with open('params.pkl','wb') as f:
-        pickle.dump(params,f)
     with open('model.pkl','wb') as f:
-        pickle.dump(model,f)
-
-
-
-
-
-
-
-
-
+        pickle.dump(best_model,f)
 
 
